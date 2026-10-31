@@ -33,13 +33,18 @@ DROP TABLE IF EXISTS `ambulancia`;
 CREATE TABLE `ambulancia` (
   `id_ambulancia` int(11) NOT NULL AUTO_INCREMENT,
   `nombre` varchar(50) NOT NULL,
+  `matricula` varchar(10) DEFAULT NULL,
   `conductor` varchar(80) DEFAULT NULL,
   `estado` enum('disponible','en_camino','llego_destino','volviendo','fuera_servicio') NOT NULL DEFAULT 'disponible',
   `fecha_estado` datetime NOT NULL DEFAULT current_timestamp(),
+  `id_conductor` int(11) DEFAULT NULL,
   PRIMARY KEY (`id_ambulancia`),
   UNIQUE KEY `nombre` (`nombre`),
-  KEY `idx_ambulancia_estado` (`estado`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uq_ambulancia_matricula` (`matricula`),
+  KEY `idx_ambulancia_estado` (`estado`),
+  KEY `fk_ambulancia_conductor` (`id_conductor`),
+  CONSTRAINT `fk_ambulancia_conductor` FOREIGN KEY (`id_conductor`) REFERENCES `conductor` (`id_conductor`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -77,6 +82,31 @@ INSERT INTO `categoria` VALUES (24,'Anestesiología'),(5,'Cardiología'),(6,'Cen
 UNLOCK TABLES;
 
 --
+-- Table structure for table `conductor`
+--
+
+DROP TABLE IF EXISTS `conductor`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `conductor` (
+  `id_conductor` int(11) NOT NULL AUTO_INCREMENT,
+  `cedula` varchar(8) DEFAULT NULL,
+  `nombre_completo` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_conductor`),
+  UNIQUE KEY `cedula` (`cedula`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `conductor`
+--
+
+LOCK TABLES `conductor` WRITE;
+/*!40000 ALTER TABLE `conductor` DISABLE KEYS */;
+/*!40000 ALTER TABLE `conductor` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `documento`
 --
 
@@ -102,7 +132,7 @@ CREATE TABLE `documento` (
   KEY `fk_documento_funcionario` (`id_funcionario`),
   CONSTRAINT `fk_documento_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categoria` (`id_categoria`),
   CONSTRAINT `fk_documento_funcionario` FOREIGN KEY (`id_funcionario`) REFERENCES `funcionario` (`id_funcionario`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -180,7 +210,7 @@ CREATE TABLE `funcionario` (
 
 LOCK TABLES `funcionario` WRITE;
 /*!40000 ALTER TABLE `funcionario` DISABLE KEYS */;
-INSERT INTO `funcionario` VALUES (1,'admin','$2y$10$6eo3h4S3ZkkpdWE5hCZ0Zu.42NZG7zJsDhk5vMfLsk1eimanMN8qG',1,1,NULL,0,'12345672'),(2,'leo','$2y$10$64GYYydpCJIVvNmpNrpBfOKQbN/kP49OaGGnUiUr4iGPxQCnJGUUO',2,1,'leo@gmail.com',0,NULL);
+INSERT INTO `funcionario` VALUES (1,'admin','$2y$10$6eo3h4S3ZkkpdWE5hCZ0Zu.42NZG7zJsDhk5vMfLsk1eimanMN8qG',1,1,'admin@gmail.com',0,'12345672'),(2,'leo','$2y$10$64GYYydpCJIVvNmpNrpBfOKQbN/kP49OaGGnUiUr4iGPxQCnJGUUO',2,1,'leo@gmail.com',0,'12345678');
 /*!40000 ALTER TABLE `funcionario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -376,7 +406,7 @@ CREATE TABLE `sincronizacion` (
 
 LOCK TABLES `sincronizacion` WRITE;
 /*!40000 ALTER TABLE `sincronizacion` DISABLE KEYS */;
-INSERT INTO `sincronizacion` VALUES ('encuestas','2026-10-30 17:59:30','2026-10-30 17:59:30',NULL);
+INSERT INTO `sincronizacion` VALUES ('encuestas','2026-10-31 17:32:59','2026-10-31 17:32:59',NULL);
 /*!40000 ALTER TABLE `sincronizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -407,6 +437,47 @@ LOCK TABLES `solicitud_clave` WRITE;
 /*!40000 ALTER TABLE `solicitud_clave` DISABLE KEYS */;
 INSERT INTO `solicitud_clave` VALUES (1,2,'2026-10-30 21:08:57',1);
 /*!40000 ALTER TABLE `solicitud_clave` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `traslado`
+--
+
+DROP TABLE IF EXISTS `traslado`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `traslado` (
+  `id_traslado` int(11) NOT NULL AUTO_INCREMENT,
+  `cedula_paciente` varchar(8) NOT NULL,
+  `nombre_paciente` varchar(100) NOT NULL,
+  `tipo_contaminacion` varchar(100) NOT NULL,
+  `origen` varchar(150) NOT NULL,
+  `destino` varchar(150) NOT NULL,
+  `fecha_salida` datetime NOT NULL,
+  `fecha_llegada` datetime NOT NULL,
+  `recibe_destino` varchar(100) NOT NULL,
+  `estado` varchar(15) NOT NULL DEFAULT 'pendiente',
+  `id_solicitante` int(11) NOT NULL,
+  `id_ambulancia` int(11) DEFAULT NULL,
+  `motivo` varchar(255) DEFAULT NULL,
+  `fecha_solicitud` datetime NOT NULL DEFAULT current_timestamp(),
+  `fecha_asignacion` datetime DEFAULT NULL,
+  PRIMARY KEY (`id_traslado`),
+  KEY `idx_traslado_estado` (`estado`),
+  KEY `idx_traslado_solicitante` (`id_solicitante`),
+  KEY `idx_traslado_ambulancia` (`id_ambulancia`,`estado`),
+  CONSTRAINT `fk_traslado_ambulancia` FOREIGN KEY (`id_ambulancia`) REFERENCES `ambulancia` (`id_ambulancia`),
+  CONSTRAINT `fk_traslado_solicitante` FOREIGN KEY (`id_solicitante`) REFERENCES `funcionario` (`id_funcionario`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `traslado`
+--
+
+LOCK TABLES `traslado` WRITE;
+/*!40000 ALTER TABLE `traslado` DISABLE KEYS */;
+/*!40000 ALTER TABLE `traslado` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -557,4 +628,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-30 18:03:42
+-- Dump completed on 2026-10-31 17:35:59
